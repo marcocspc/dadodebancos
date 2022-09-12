@@ -9,6 +9,7 @@ DOCKERCMD=podman
 SHARED_FOLDER=$(HOME)/dadosdebanco
 CONTAINER_UID = 1000
 CONTAINER_GID = 1000
+TZ=America/Fortaleza
 
 #Obter UID e GID do usuario, o if abaixo eh para
 #compatibilidade com MacOS
@@ -24,9 +25,8 @@ endif
 
 .DEFAULT_GOAL := info
 
-
-.PHONY: build
-build:
+.PHONY: build-debug
+build-debug:
 	$(DOCKERCMD) build -t ${IMG} \
 		--build-arg UID_ARG=$(CONTAINER_UID) \
 		--build-arg GID_ARG=$(CONTAINER_GID) \
@@ -34,37 +34,53 @@ build:
 	mkdir -p $(SHARED_FOLDER)
 	$(DOCKERCMD) unshare chown $(USER_UID):$(USER_GID) $(SHARED_FOLDER)
 
-start:
+.PHONY: start-debug
+start-debug:
 	$(DOCKERCMD) run -d --rm -it --name ${CONTAINER_NAME} \
 		--cap-add CAP_AUDIT_WRITE  --cap-add  CAP_SYS_PTRACE  \
+		--net=host \
 		-e USER_UID=$(USER_UID) \
 		-e USER_GID=$(USER_GID) \
+		-e DISPLAY=$(DISPLAY) \
+		-e TZ=$TZ \
 		-v "$(XAUTHORITY):/root/.Xauthority:ro" \
 		-v "/tmp/.X11-unix:/tmp/.X11-unix:ro" \
 		-v "/etc/machine-id:/etc/machine-id:ro" \
-		-v "$(SHARED_FOLDER):/home/user/Downloads:rw" \
+		-v "$(SHARED_FOLDER):/home/user:rw" \
 		$(IMG)
 
 .PHONY: clean
-clean:
-	rm -rf build/ 
+clean: stop remove ;
 
 .PHONY: info 
 info:
-	@echo "Execute 'make prepare' para que o código possa"
-	@echo "ser preparado para compilação no Arduino IDE."
+	@echo "make build-debug constroi uma imagem para geração de novos scripts, debug, etc. Esta imagem tem gui, ao contrário da padrão."
+	@echo "make start-debug inicia o container debug."
+	@echo "make logs mostra os logs do container."
+	@echo "make clean remove o container e a imagem."
+	@echo "make shell te coloca em um terminal dentro do container."
+	@echo "make stop para o container."
+	@echo "make remove para e apaga o container."
+
 
 .PHONY: default
 default: info ;
 
+.PHONY: logs
 logs:
 	$(DOCKERCMD) logs -f ${CONTAINER_NAME}
 
+.PHONY: shell
 shell:
 	$(DOCKERCMD) exec -it ${CONTAINER_NAME} bash
 
+.PHONY: stop
 stop:
-	-$(DOCKERCMD) kill ${CONTAINER_NAME}
+	$(DOCKERCMD) kill ${CONTAINER_NAME}
 
+.PHONY: remove
 remove:
-	-$(DOCKERCMD) image rm ${CONTAINER_NAME}
+	$(DOCKERCMD) image rm ${CONTAINER_NAME}
+
+.PHONY: rebuild
+rebuild: build ;
