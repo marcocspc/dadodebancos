@@ -9,7 +9,7 @@ DOCKERCMD=podman
 SHARED_FOLDER=$(HOME)/dadosdebanco
 CONTAINER_UID = 1000
 CONTAINER_GID = 1000
-TZ=America/Fortaleza
+TZ = America/Fortaleza
 
 #Obter UID e GID do usuario, o if abaixo eh para
 #compatibilidade com MacOS
@@ -19,6 +19,9 @@ PLATFORM = linux
 ifeq ($(shell uname),Darwin)
 	USER_GID = $(shell id -u $(USER))
 	PLATFORM = mac
+	XAUTHORITY = $(HOME)/.Xauthority
+	DISPLAY = :0
+	NETWORK_INTERFACE = en0
 endif
 
 
@@ -30,28 +33,34 @@ endif
 .PHONY: build
 build:
 	$(DOCKERCMD) build -t ${IMG} \
+		--build-arg TZ=$(TZ) \
 		--build-arg UID_ARG=$(CONTAINER_UID) \
 		--build-arg GID_ARG=$(CONTAINER_GID) \
 		.
 	mkdir -p $(SHARED_FOLDER)
-	ifeq ($(PLATFORM),linux)
-		$(DOCKERCMD) unshare chown $(USER_UID):$(USER_GID) $(SHARED_FOLDER)
-	endif
+	@if [[ "$(PLATFORM)" == "linux" ]] ; then \
+		$(DOCKERCMD) unshare chown $(USER_UID):$(USER_GID) $(SHARED_FOLDER); \
+	fi
 
 .PHONY: start-debug
 start-debug:
+	if [[ "$(PLATFORM)" == "mac" ]] ; then \
+		$(eval IP := $(shell ifconfig $(NETWORK_INTERFACE) | grep inet | tail -1 | awk '{ print $$2 }')) \
+		xhost + $(IP) ;  \
+		export DISPLAY=$(IP):$(DISPLAY); \
+	fi
 	$(DOCKERCMD) run -d --rm -it --name ${CONTAINER_NAME} \
 		--cap-add CAP_AUDIT_WRITE  --cap-add  CAP_SYS_PTRACE  \
 		--net=host \
 		-e USER_UID=$(USER_UID) \
 		-e USER_GID=$(USER_GID) \
-		-e DISPLAY=$(DISPLAY) \
+		-e DISPLAY=$(IP)$(DISPLAY) \
 		-e DEBUG="1" \
-		-e TZ=$TZ \
+		-e TZ=$(TZ) \
 		-v "$(XAUTHORITY):/root/.Xauthority:ro" \
 		-v "/tmp/.X11-unix:/tmp/.X11-unix:ro" \
 		-v "/etc/machine-id:/etc/machine-id:ro" \
-		-v "$(SHARED_FOLDER):/home/user:rw" \
+		-v "$(SHARED_FOLDER):/home/user/Downloads:rw" \
 		$(IMG)
 
 .PHONY: clean
@@ -86,6 +95,7 @@ stop:
 .PHONY: remove
 remove:
 	$(DOCKERCMD) image rm ${CONTAINER_NAME}
+	rm -rf ~/dadosdebanco
 
 .PHONY: rebuild
 rebuild: build ;

@@ -2,6 +2,7 @@ FROM ubuntu:18.04
 
 ARG UID_ARG=1000
 ARG GID_ARG=1000
+ARG TZ="America/Fortaleza"
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV USER_UID=$UID_ARG
@@ -45,6 +46,7 @@ RUN apt-get install -y --no-install-recommends \
 # sha256sum of the latest test deb package: sha256sum warsaw_setup64.deb
 # 54601df0711ede3a0c8b72f8b408b20309fa41874af0aa465499358ba8c04cc5
 ADD https://cloud.gastecnologia.com.br/cef/warsaw/install/GBPCEFwr64.deb /src/warsaw.deb
+#ADD https://cloud.gastecnologia.com.br/bb/downloads/ws/warsaw_setup64.deb /src/warsaw.deb
 
 RUN groupadd -g ${USER_GID} ${USERNAME} && \
     useradd -u ${USER_UID} -g ${USER_GID} -ms /bin/bash user && \
@@ -62,4 +64,3 @@ RUN mkdir -p /var/run/dbus && \
 STOPSIGNAL SIGRTMIN+3
 
 ENTRYPOINT [ "/sbin/init" ]
-
