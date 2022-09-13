@@ -15,8 +15,10 @@ TZ=America/Fortaleza
 #compatibilidade com MacOS
 USER_UID = $(shell id -u $(USER))
 USER_GID = $(shell id -g $(USER))
+PLATFORM = linux
 ifeq ($(shell uname),Darwin)
 	USER_GID = $(shell id -u $(USER))
+	PLATFORM = mac
 endif
 
 
@@ -25,14 +27,16 @@ endif
 
 .DEFAULT_GOAL := info
 
-.PHONY: build-debug
-build-debug:
+.PHONY: build
+build:
 	$(DOCKERCMD) build -t ${IMG} \
 		--build-arg UID_ARG=$(CONTAINER_UID) \
 		--build-arg GID_ARG=$(CONTAINER_GID) \
 		.
 	mkdir -p $(SHARED_FOLDER)
-	$(DOCKERCMD) unshare chown $(USER_UID):$(USER_GID) $(SHARED_FOLDER)
+	ifeq ($(PLATFORM),linux)
+		$(DOCKERCMD) unshare chown $(USER_UID):$(USER_GID) $(SHARED_FOLDER)
+	endif
 
 .PHONY: start-debug
 start-debug:
@@ -42,6 +46,7 @@ start-debug:
 		-e USER_UID=$(USER_UID) \
 		-e USER_GID=$(USER_GID) \
 		-e DISPLAY=$(DISPLAY) \
+		-e DEBUG="1" \
 		-e TZ=$TZ \
 		-v "$(XAUTHORITY):/root/.Xauthority:ro" \
 		-v "/tmp/.X11-unix:/tmp/.X11-unix:ro" \
@@ -54,8 +59,8 @@ clean: stop remove ;
 
 .PHONY: info 
 info:
-	@echo "make build-debug constroi uma imagem para geração de novos scripts, debug, etc. Esta imagem tem gui, ao contrário da padrão."
-	@echo "make start-debug inicia o container debug."
+	@echo "make build constroi a imagem."
+	@echo "make start-debug inicia o container debug para geração de novos scripts, debug, etc. Ele possui gui, ao contrário do padrão."
 	@echo "make logs mostra os logs do container."
 	@echo "make clean remove o container e a imagem."
 	@echo "make shell te coloca em um terminal dentro do container."
