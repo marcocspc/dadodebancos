@@ -5,6 +5,7 @@ K := $(foreach exec,$(EXECUTABLES),\
 
 IMG=dadosdebanco
 CONTAINER_NAME=dadosdebanco
+#DOCKERCMD=podman
 DOCKERCMD=podman
 SHARED_FOLDER=$(HOME)/dadosdebanco
 CONTAINER_UID = 1000
@@ -38,14 +39,17 @@ build:
 		--build-arg GID_ARG=$(CONTAINER_GID) \
 		.
 	mkdir -p $(SHARED_FOLDER)
-	@if [[ "$(PLATFORM)" == "linux" ]] ; then \
+	@if [ "$(PLATFORM)" = "linux" ] ; then \
 		$(DOCKERCMD) unshare chown $(USER_UID):$(USER_GID) $(SHARED_FOLDER); \
 	fi
 
+.PHONY: start
+start: start-debug
+
 .PHONY: start-debug
 start-debug:
-	if [[ "$(PLATFORM)" == "mac" ]] ; then \
-		$(eval IP := $(shell ifconfig $(NETWORK_INTERFACE) | grep inet | tail -1 | awk '{ print $$2 }')) \
+	@if [ "$(PLATFORM)" = "mac" ] ; then \
+		$(eval IP := $(shell ifconfig $(NETWORK_INTERFACE) | grep -V inet6 | grep inet | tail -1 | awk '{ print $$2 }')) \
 		xhost + $(IP) ;  \
 		export DISPLAY=$(IP):$(DISPLAY); \
 	fi
@@ -62,6 +66,7 @@ start-debug:
 		-v "/etc/machine-id:/etc/machine-id:ro" \
 		-v "$(SHARED_FOLDER):/home/user/Downloads:rw" \
 		$(IMG)
+	$(DOCKERCMD) exec ${CONTAINER_NAME} lxterminal
 
 .PHONY: clean
 clean: stop remove ;

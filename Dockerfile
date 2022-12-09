@@ -23,7 +23,8 @@ RUN ln -sf /bin/true /usr/bin/chfn && apt-get update && \
     ca-certificates \
 # This dependency is also for warsaw. This is the strangest thing
     libgtk2.0-0 \
-    chromium-browser
+    chromium-browser \
+    lxterminal
 
 #
 # Below the dependencies on warsaw deb package.
@@ -52,6 +53,12 @@ RUN groupadd -g ${USER_GID} ${USERNAME} && \
     useradd -u ${USER_UID} -g ${USER_GID} -ms /bin/bash user && \
     mkdir /home/${USERNAME}/Downloads && \
     chown -R ${USERNAME}.${USERNAME} /home/${USERNAME}
+
+#Instalar selenium IDE
+COPY context/install_chrome_selenium_extension.sh /bin/install_chrome_selenium_extension.sh
+RUN chmod +x /bin/install_chrome_selenium_extension.sh
+RUN /bin/install_chrome_selenium_extension.sh
+RUN rm /bin/install_chrome_selenium_extension.sh
 
 COPY context/chromium.service /etc/systemd/system/
 COPY context/startbrowser.sh /usr/local/bin/
