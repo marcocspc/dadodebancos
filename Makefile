@@ -24,8 +24,9 @@ ifeq ($(shell uname),Darwin)
 	XAUTHORITY := $(HOME)/.Xauthority
 	DISPLAY := :0
 	NETWORK_INTERFACE := en0
-	UNSHARE_CMD := $(PODMANCMD) machine ssh unshare
+	UNSHARE_CMD := $(PODMANCMD) machine ssh podman unshare
     IP := $(shell ifconfig $(NETWORK_INTERFACE) |  grep inet | tail -1 | awk '{print $$2 }')
+	PODMAN_SSH := podman machine ssh
 endif
 
 ##### ALVOS ######
@@ -39,11 +40,11 @@ build:
 		--build-arg TZ=$(TZ) \
 		--build-arg UID_ARG=$(CONTAINER_UID) \
 		--build-arg GID_ARG=$(CONTAINER_GID) \
-	    .  
-	mkdir -p $(SHARED_FOLDER) 
-	mkdir -p $(CHROMIUM_DATA) 
-	$(UNSHARE_CMD) chown $(USER_UID):$(USER_GID) $(SHARED_FOLDER) 
-	$(UNSHARE_CMD) chown $(USER_UID):$(USER_GID) $(CHROMIUM_DATA)
+	    $(no_cache) .  
+	$(PODMAN_SSH) mkdir -p $(SHARED_FOLDER) 
+	$(PODMAN_SSH) mkdir -p $(CHROMIUM_DATA) 
+	$(UNSHARE_CMD) chown $(CONTAINER_UID):$(CONTAINER_GID) $(SHARED_FOLDER) 
+	$(UNSHARE_CMD) chown $(CONTAINER_UID):$(CONTAINER_GID) $(CHROMIUM_DATA)
 
 .PHONY: start
 start: start-debug

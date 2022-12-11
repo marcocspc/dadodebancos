@@ -40,8 +40,9 @@ RUN apt-get install -y --no-install-recommends \
 # Debug
 #
 #RUN apt-get install -y --no-install-recommends \
-#    xauth \
-#    vim
+    #xauth \
+    #net-tools \
+    #vim
 
 # We are going to install warsaw from CEF. It works for BB.
 # sha256sum of the latest test deb package: sha256sum warsaw_setup64.deb
