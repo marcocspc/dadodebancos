@@ -33,14 +33,14 @@ RUN apt-get install -y --no-install-recommends \
     libdbus-1-3 \
     procps \
     zenity \
-    python3
+    python3 \
+    x11-apps
 
 #
 # Debug
 #
 #RUN apt-get install -y --no-install-recommends \
 #    xauth \
-#    x11-apps \
 #    vim
 
 # We are going to install warsaw from CEF. It works for BB.
@@ -51,8 +51,9 @@ ADD https://cloud.gastecnologia.com.br/cef/warsaw/install/GBPCEFwr64.deb /src/wa
 
 RUN groupadd -g ${USER_GID} ${USERNAME} && \
     useradd -u ${USER_UID} -g ${USER_GID} -ms /bin/bash user && \
-    mkdir /home/${USERNAME}/Downloads && \
-    chown -R ${USERNAME}.${USERNAME} /home/${USERNAME}
+    mkdir -p /home/${USERNAME}/Downloads && \
+    mkdir -p /home/${USERNAME}/.config/chromium/Default && \
+    chown -R ${USERNAME}:${USERNAME} /home/${USERNAME}
 
 #Instalar selenium IDE
 COPY context/install_chrome_selenium_extension.sh /bin/install_chrome_selenium_extension.sh
@@ -66,7 +67,7 @@ COPY context/startbrowser.sh /usr/local/bin/
 RUN mkdir -p /var/run/dbus && \
 	systemctl enable chromium && \
 	systemctl disable systemd-resolved && \
-        systemctl disable systemd-tmpfiles-setup.service
+    systemctl disable systemd-tmpfiles-setup.service
 
 STOPSIGNAL SIGRTMIN+3
 

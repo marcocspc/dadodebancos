@@ -1,18 +1,15 @@
-#!/bin/bash -xe
+#!/bin/bash
 
-install_chrome_extension () {
-  preferences_dir_path="/opt/google/chrome/extensions"
-  pref_file_path="$preferences_dir_path/$1.json"
-  upd_url="https://clients2.google.com/service/update2/crx"
-  mkdir -p "$preferences_dir_path"
-  echo "{" > "$pref_file_path"
-  echo "  \"external_update_url\": \"$upd_url\"" >> "$pref_file_path"
-  echo "}" >> "$pref_file_path"
-  echo Added \""$pref_file_path"\" ["$2"]
-}
+#install extensions via terminal
 
-#instalar selenium ide no chrome (para a geracao de scripts)
-install_chrome_extension "mooikfkahbdckldjjndioackbalphokd" "selenium-ide"
+# fill the array with the needed extensions 
+# key=["extension_name"] value="extension_ID"
 
-
-
+declare -A EXTlist=(
+    ["selenium-ide"]="mooikfkahbdckldjjndioackbalphokd"
+)
+mkdir -p /opt/google/chrome/extensions
+for i in "${!EXTlist[@]}"; do
+    echo '{"external_update_url": "https://clients2.google.com/service/update2/crx"}' > /opt/google/chrome/extensions/${EXTlist[$i]}.json
+    echo "Installed $i"
+done

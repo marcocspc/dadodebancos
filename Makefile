@@ -5,9 +5,9 @@ K := $(foreach exec,$(EXECUTABLES),\
 
 IMG=dadosdebanco
 CONTAINER_NAME=dadosdebanco
-#DOCKERCMD=podman
 DOCKERCMD=podman
-SHARED_FOLDER=$(HOME)/dadosdebanco
+SHARED_FOLDER=$(PWD)/chromium_downloads
+CHROMIUM_DATA=$(PWD)/chromium_data
 CONTAINER_UID = 1000
 CONTAINER_GID = 1000
 TZ = America/Fortaleza
@@ -39,8 +39,10 @@ build:
 		--build-arg GID_ARG=$(CONTAINER_GID) \
 		.
 	mkdir -p $(SHARED_FOLDER)
+	mkdir -p $(CHROMIUM_DATA)
 	@if [ "$(PLATFORM)" = "linux" ] ; then \
-		$(DOCKERCMD) unshare chown $(USER_UID):$(USER_GID) $(SHARED_FOLDER); \
+		$(DOCKERCMD) unshare chown -r $(USER_UID).$(USER_GID) $(SHARED_FOLDER); \
+		$(DOCKERCMD) unshare chown -r $(USER_UID).$(USER_GID) $(CHROMIUM_DATA); \
 	fi
 
 .PHONY: start
@@ -49,7 +51,7 @@ start: start-debug
 .PHONY: start-debug
 start-debug:
 	@if [ "$(PLATFORM)" = "mac" ] ; then \
-		$(eval IP := $(shell ifconfig $(NETWORK_INTERFACE) | grep -V inet6 | grep inet | tail -1 | awk '{ print $$2 }')) \
+		$(eval IP := $(shell ifconfig $(NETWORK_INTERFACE) |  grep inet | tail -1 | awk '{ print $$2 }')) \
 		xhost + $(IP) ;  \
 		export DISPLAY=$(IP):$(DISPLAY); \
 	fi
@@ -65,6 +67,7 @@ start-debug:
 		-v "/tmp/.X11-unix:/tmp/.X11-unix:ro" \
 		-v "/etc/machine-id:/etc/machine-id:ro" \
 		-v "$(SHARED_FOLDER):/home/user/Downloads:rw" \
+		-v "$(CHROMIUM_DATA):/home/user/.config/chromium/Default:rw" \
 		$(IMG)
 	$(DOCKERCMD) exec ${CONTAINER_NAME} lxterminal
 
