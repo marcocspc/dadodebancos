@@ -1,28 +1,30 @@
 #Check for python 3
-EXECUTABLES = python3 podman
+EXECUTABLES := python3 podman
 K := $(foreach exec,$(EXECUTABLES),\
         $(if $(shell which $(exec)),some string,$(error "$(exec) nao esta no PATH. Instale o $(exec) e tente novamente.")))
 
-IMG=dadosdebanco
-CONTAINER_NAME=dadosdebanco
-DOCKERCMD=podman
-SHARED_FOLDER=$(PWD)/chromium_downloads
-CHROMIUM_DATA=$(PWD)/chromium_data
-CONTAINER_UID = 1000
-CONTAINER_GID = 1000
-TZ = America/Fortaleza
+IMG:=dadosdebanco
+CONTAINER_NAME:=dadosdebanco
+DOCKERCMD:=podman
+SHARED_FOLDER:=$(PWD)/chromium_downloads
+CHROMIUM_DATA:=$(PWD)/chromium_data
+CONTAINER_UID := 1000
+CONTAINER_GID := 1000
+TZ := America/Fortaleza
 
 #Obter UID e GID do usuario, o if abaixo eh para
 #compatibilidade com MacOS
-USER_UID = $(shell id -u $(USER))
-USER_GID = $(shell id -g $(USER))
-PLATFORM = linux
+USER_UID := $(shell id -u $(USER))
+USER_GID := $(shell id -g $(USER))
+PLATFORM := linux
 ifeq ($(shell uname),Darwin)
-	USER_GID = $(shell id -u $(USER))
-	PLATFORM = mac
-	XAUTHORITY = $(HOME)/.Xauthority
-	DISPLAY = :0
-	NETWORK_INTERFACE = en0
+	USER_GID := $(shell id -u $(USER))
+	PLATFORM := mac
+	XAUTHORITY := $(HOME)/.Xauthority
+	DISPLAY := :0
+	NETWORK_INTERFACE := en0
+	CONTAINER_UID := $(USER_UID)
+	CONTAINER_GID := $(USER_GID)
 endif
 
 
@@ -100,10 +102,15 @@ shell:
 stop:
 	$(DOCKERCMD) kill ${CONTAINER_NAME}
 
+.PHONY: rm
+rm: remove
+
 .PHONY: remove
 remove:
-	$(DOCKERCMD) image rm ${CONTAINER_NAME}
-	rm -rf ~/dadosdebanco
+	$(DOCKERCMD) container stop ${CONTAINER_NAME}
+	$(DOCKERCMD) container rm ${CONTAINER_NAME}
+	rm -rf $(SHARED_FOLDER)
+	rm -rf $(CHROMIUM_DATA)
 
 .PHONY: rebuild
 rebuild: build ;
