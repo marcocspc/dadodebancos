@@ -5,7 +5,8 @@ K := $(foreach exec,$(EXECUTABLES),\
 
 IMG:=dadosdebanco
 CONTAINER_NAME:=dadosdebanco
-DOCKERCMD:=podman
+PODMANCMD:=podman
+UNSHARE_CMD:=$(PODMANCMD) unshare
 SHARED_FOLDER:=$(PWD)/chromium_downloads
 CHROMIUM_DATA:=$(PWD)/chromium_data
 CONTAINER_UID := 1000
@@ -23,10 +24,9 @@ ifeq ($(shell uname),Darwin)
 	XAUTHORITY := $(HOME)/.Xauthority
 	DISPLAY := :0
 	NETWORK_INTERFACE := en0
-	CONTAINER_UID := $(USER_UID)
-	CONTAINER_GID := $(USER_GID)
+	UNSHARE_CMD := $(PODMANCMD) machine ssh unshare
+    IP := $(shell ifconfig $(NETWORK_INTERFACE) |  grep inet | tail -1 | awk '{print $$2 }')
 endif
-
 
 ##### ALVOS ######
 
@@ -35,17 +35,15 @@ endif
 
 .PHONY: build
 build:
-	$(DOCKERCMD) build -t ${IMG} \
+	$(PODMANCMD) build -t ${IMG} \
 		--build-arg TZ=$(TZ) \
 		--build-arg UID_ARG=$(CONTAINER_UID) \
 		--build-arg GID_ARG=$(CONTAINER_GID) \
-		.
-	mkdir -p $(SHARED_FOLDER)
-	mkdir -p $(CHROMIUM_DATA)
-	@if [ "$(PLATFORM)" = "linux" ] ; then \
-		$(DOCKERCMD) unshare chown -r $(USER_UID).$(USER_GID) $(SHARED_FOLDER); \
-		$(DOCKERCMD) unshare chown -r $(USER_UID).$(USER_GID) $(CHROMIUM_DATA); \
-	fi
+	    .  
+	mkdir -p $(SHARED_FOLDER) 
+	mkdir -p $(CHROMIUM_DATA) 
+	$(UNSHARE_CMD) chown $(USER_UID):$(USER_GID) $(SHARED_FOLDER) 
+	$(UNSHARE_CMD) chown $(USER_UID):$(USER_GID) $(CHROMIUM_DATA)
 
 .PHONY: start
 start: start-debug
@@ -53,11 +51,10 @@ start: start-debug
 .PHONY: start-debug
 start-debug:
 	@if [ "$(PLATFORM)" = "mac" ] ; then \
-		$(eval IP := $(shell ifconfig $(NETWORK_INTERFACE) |  grep inet | tail -1 | awk '{ print $$2 }')) \
 		xhost + $(IP) ;  \
 		export DISPLAY=$(IP):$(DISPLAY); \
 	fi
-	$(DOCKERCMD) run -d --rm -it --name ${CONTAINER_NAME} \
+	$(PODMANCMD) run -d --rm -it --name ${CONTAINER_NAME} \
 		--cap-add CAP_AUDIT_WRITE  --cap-add  CAP_SYS_PTRACE  \
 		--net=host \
 		-e USER_UID=$(USER_UID) \
@@ -71,7 +68,7 @@ start-debug:
 		-v "$(SHARED_FOLDER):/home/user/Downloads:rw" \
 		-v "$(CHROMIUM_DATA):/home/user/.config/chromium/Default:rw" \
 		$(IMG)
-	$(DOCKERCMD) exec ${CONTAINER_NAME} lxterminal
+	$(PODMANCMD) exec ${CONTAINER_NAME} lxterminal
 
 .PHONY: clean
 clean: stop remove ;
@@ -92,23 +89,23 @@ default: info ;
 
 .PHONY: logs
 logs:
-	$(DOCKERCMD) logs -f ${CONTAINER_NAME}
+	$(PODMANCMD) logs -f ${CONTAINER_NAME}
 
 .PHONY: shell
 shell:
-	$(DOCKERCMD) exec -it ${CONTAINER_NAME} bash
+	$(PODMANCMD) exec -it ${CONTAINER_NAME} bash
 
 .PHONY: stop
 stop:
-	$(DOCKERCMD) kill ${CONTAINER_NAME}
+	$(PODMANCMD) kill ${CONTAINER_NAME}
 
 .PHONY: rm
 rm: remove
 
 .PHONY: remove
 remove:
-	$(DOCKERCMD) container stop ${CONTAINER_NAME}
-	$(DOCKERCMD) container rm ${CONTAINER_NAME}
+	$(PODMANCMD) container stop ${CONTAINER_NAME}
+	$(PODMANCMD) container rm ${CONTAINER_NAME}
 	rm -rf $(SHARED_FOLDER)
 	rm -rf $(CHROMIUM_DATA)
 
